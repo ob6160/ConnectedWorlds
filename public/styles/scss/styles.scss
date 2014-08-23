@@ -1,0 +1,90 @@
+@import "normalize";
+@import "button";
+/*
+*	Layout
+*/
+
+html, body {
+	color: white;
+	background-color: #231f20;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+div[role=main] {
+	margin: 0;
+	max-width: 1240px;
+	margin-left: auto;
+	margin-right: auto;
+	border-top: 5px solid orange;
+	padding: 10px;
+	font-weight: 500;
+	line-height: 1;
+}
+
+header {
+	position: relative;
+	min-height: 150px;
+	padding: 10px 10px;
+	border-bottom: 3px solid orange;
+	.left {
+		float: left;
+		margin: 0;
+	}
+	.right {
+		float: right;
+		margin: 0;
+	}
+}
+
+.content {
+	position: relative;
+}
+
+.blocks {
+	position: relative;
+	display: inline-block;
+	min-height: 200px;
+	width: 100%;
+	border-top: 3px solid orange;
+	margin-top: 20px;
+	text-align: center;
+	.block {
+		min-height: 150px;
+		width: 33%;
+		text-align: center;
+		border: 2px solid orange;
+		float: left;
+		display: inline-block;
+
+	}
+
+}
+
+.headline {
+	width: 100%;
+	text-align: center;
+	margin-top: 50px;
+	a {
+		padding: 20px;
+		display: inline-block;
+		margin: 40px;
+	}
+	
+	h1#orange {
+		color: orange;
+		font-weight: 1000;
+	}
+
+	& > h1 {
+		font-weight: 500;
+		font-size: 63px;
+		line-height: 1;
+		margin: 10px;
+		margin-bottom: 0;
+	}
+}
+
+footer {
+	margin-top: 80px;
+	border-top: 3px dotted orange;
+}
