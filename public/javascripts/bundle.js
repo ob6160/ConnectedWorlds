@@ -19,10 +19,11 @@ util = require('./util');
 var Game = {
 	canvas: document.getElementById("canvas"),
 	context: canvas.getContext("2d"),
-	CANVAS_WIDTH: 500,
-	CANVAS_HEIGHT: 500,
-	TILE_WIDTH: 16,
-	TILE_HEIGHT: 16,
+	time: 0,
+	CANVAS_WIDTH: window.innerWidth,
+	CANVAS_HEIGHT: window.innerHeight,
+	TILE_WIDTH: 128,
+	TILE_HEIGHT: 64,
 	running: true,
 	lastTime: Date.now(),
     dt: 0,
@@ -32,6 +33,17 @@ var Game = {
     fpsaverage: 0,
     mPos: {x: 0, y: 0},
     tiles: [],
+    camera: {x: 0, y: 0, w: 100, h: 100},
+    player: {
+    	x:256,
+    	y:192,
+    	w:10,
+    	h:10,
+    	tex: new Image(),
+    },
+    images: {
+
+    }
 };
 
 Game.init = function() {
@@ -42,9 +54,30 @@ Game.init = function() {
 		var pos = util.getMousePos(this.canvas, e);
 		this.mPos = pos;
 	}.bind(this));
+
 	/* Create Game Map */
 	this.tiles = util.init2D(100, 100);
-	this.tick();
+
+	/* Create Time Canvas */
+	/*this.timeCanvas = document.createElement("canvas");
+	this.timeContext = this.timeCanvas.getContext("2d");
+	this.timeCanvas.width = this.canvas.width;
+	this.timeCanvas.height = this.canvas.height;
+	this.timeCanvas.fillRect()*/
+
+	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null} };
+	for(var i in this.images) {
+		var newImage = new Image();
+		
+		this.images[i].image = newImage;
+		newImage.onload = function() {
+			this.tick();
+		}.bind(this);
+		newImage.src = this.images[i].url;
+	}
+	//console.log(this.images);
+
+	
 };
 
 Game.tick = function() {
@@ -67,41 +100,39 @@ Game.tick = function() {
 Game.update = function(dt) {
 	
 };
-
-/*var tiles = [
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0],
-[0,0,0,0,0,0,0,0,0,0]]*/
-
+var aa = 1;
 Game.render = function(dt) {
   	tiles = this.tiles;
   	var context = this.context;
   	
-  	context.fillStyle = "blue";
-  	context.fillRect(0, 0, 400, 400);
+  	context.fillStyle = "black";
+  	context.clearRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+  	var count  = 0;
 	for(var y = 0; y < tiles.length; y++) {
 		for(var x = 0; x < tiles[y].length; x++) {
+			var pos = util.isometricTransform(x, y, this.TILE_WIDTH, this.TILE_HEIGHT, 500, 0);
+			if(pos.x > this.canvas.width + 128 || pos.x < -128 || pos.y > this.canvas.height + 128 || pos.y < -128) continue;
+			if(tiles[x][y] == 1) {
+				context.drawImage(this.images.grass.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+				context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
+			} else {
+				context.drawImage(this.images.tree.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+				context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
+			}
+			context.fillStyle = "red";
+
+			var playerPos = util.isometricTransform(this.player.x/128, this.player.y/64, this.TILE_WIDTH, this.TILE_HEIGHT, 500, 0);
+			context.fillRect(playerPos.x, playerPos.y, 10, 10);
+				
 			
-			var x1 = x * this.TILE_WIDTH;
-			var y1 = y * this.TILE_HEIGHT;
-			
-			var pos = util.isometricTransform(x1, y1);
-
-
-			context.fillStyle = "green";
-			context.fillRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
-	
-
 			
 		}
 	}
+	//console.log(count);
+	//aa -= 0.001;
+  	//context.fillStyle = "rgba(0, 0, 0, "+aa+")";
+
+  	//context.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
 };
 
 
@@ -109,17 +140,26 @@ Game.init();
 },{"./level":1,"./light":2,"./util":4,"./vector":5}],4:[function(require,module,exports){
 Utils = {};
 
-Utils.isometricTransform = function(x, y, w, h) {
-	x += 160;
-	var isoX = x - y;
-	var isoY = (x + y) / 2;
+Utils.isometricTransform = function(x, y, w, h, oX, oY) {
+	if(!oX) oX = 0;
+	if(!oY) oY = 0;
+	var isoX = ((x - y) * (w >> 1)) + oX;
+	var isoY = ((x + y) * (h >> 1)) + oY;
+
 	return {x: isoX, y: isoY};
 };
 
+Utils.objectIso = function(x, y, oX, oY) {
+	var isoX = ((x - y)) + oX;
+	var isoY = ((x + y) / 2) + oY;
+
+	return {x: isoX, y: isoY};
+}
+
 Utils.transformIsometric = function(x, y, w, h) {
-	x += 160;
-	var x0 = (2 * y + x) / 2;
-	var y0 = (2 * y - x) / 2;
+
+	var x0 = (2 * y + x) * (w >> 1);
+	var y0 = (2 * y - x) * (w >> 1);
 	return {x: x0, y: y0};
 };
 
@@ -139,10 +179,14 @@ Utils.getMousePos = function(canvas, evt) {
 
 Utils.init2D = function(width, height) {
 	var tempArr = [];
-	for(var i = 0; i < width; i++) {
+	for(var i = 0; i < height; i++) {
 		tempArr[i] = [];
-		for(var j = 0; j < height; j++) {
+		for(var j = 0; j < width; j++) {
 			tempArr[i][j] = 0;
+			if(Math.random()*1 < 0.5) {
+				tempArr[i][j] = 1;
+			}
+			
 		}
 	}
 	return tempArr;
