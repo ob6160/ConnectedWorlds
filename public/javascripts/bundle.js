@@ -25,26 +25,28 @@ var Game = {
 	TILE_WIDTH: 128,
 	TILE_HEIGHT: 64,
 	running: true,
-	lastTime: Date.now(),
+	lastTime:  timeStamp(),
     dt: 0,
     speed: 1,
-    step: (1 / 60) * this.speed,
+    step: (1 / 60) * 1,
     fps: 0,
     fpsaverage: 0,
     mPos: {x: 0, y: 0},
     tiles: [],
     camera: {x: 0, y: 0, w: 100, h: 100},
     player: {
-    	x:256,
-    	y:192,
+    	x:128,
+    	y:0,
     	w:10,
     	h:10,
     	tex: new Image(),
+    	speed: 300,
     },
-    images: {
-
-    }
+    images: {},
+    keys: [],
 };
+
+
 
 Game.init = function() {
 	this.canvas.width = this.CANVAS_WIDTH;
@@ -53,8 +55,21 @@ Game.init = function() {
 	this.canvas.addEventListener('mousemove', function(e) {
 		var pos = util.getMousePos(this.canvas, e);
 		this.mPos = pos;
+
+		var destTile = util.isometricTransform((this.mPos.x/128)/128, (this.mPos.y/64)/64, 128, 64, this.camera.x, this.camera.y);
+		
+		var x1 = ~~destTile.x;
+		var y1 = ~~destTile.y;
+		console.log(x1, y1);
+		this.tiles[x1][y1] = 1;
+	}.bind(this));
+	$(document).keydown(function (e) {
+	    this.keys[e.keyCode] = true;
 	}.bind(this));
 
+	$(document).keyup(function (e) {
+	    delete this.keys[e.keyCode];
+	}.bind(this));
 	/* Create Game Map */
 	this.tiles = util.init2D(100, 100);
 
@@ -75,7 +90,6 @@ Game.init = function() {
 		}.bind(this);
 		newImage.src = this.images[i].url;
 	}
-	//console.log(this.images);
 
 	
 };
@@ -83,11 +97,11 @@ Game.init = function() {
 Game.tick = function() {
 	if (this.running) {
         requestAnimationFrame(function () {
-	        var now = Date.now();
+	        var now =  timeStamp();
 	        this.dt = this.dt + Math.min(1, (now - this.lastTime / 1000));
 	        this.dt = this.dt - this.step;
-	        this.update(this.step);
 	        this.render(this.dt / this.speed);
+	        this.update(this.step, this.keys);
 	        this.fps = (1000 / (now - this.lastTime));
 	        this.fpsaverage += (this.fps - this.fpsaverage) / 8;
 	        if (!this.fpsaverage) this.fpsaverage = 60;
@@ -97,11 +111,27 @@ Game.tick = function() {
 	}
 }
 
-Game.update = function(dt) {
-	
+Game.update = function(dt, keys) {
+	var dX, dY, nX = this.player.x, nY = this.player.y;
+	dX = this.player.speed * dt;
+	dY = this.player.speed * dt;
+
+	if (keys[87]) {
+		this.camera.y += dY/4; 
+	} else if(keys[83]) {
+		 this.camera.y -= dY/4;
+	} 
+	if (keys[65]) {
+		this.camera.x += dX/4; 
+	} else if (keys[68]) {
+		this.camera.x -= dX/4;
+	}
 };
+
+
 var aa = 1;
 Game.render = function(dt) {
+  	
   	tiles = this.tiles;
   	var context = this.context;
   	
@@ -110,29 +140,24 @@ Game.render = function(dt) {
   	var count  = 0;
 	for(var y = 0; y < tiles.length; y++) {
 		for(var x = 0; x < tiles[y].length; x++) {
-			var pos = util.isometricTransform(x, y, this.TILE_WIDTH, this.TILE_HEIGHT, 500, 0);
+			var pos = util.isometricTransform(x, y, this.TILE_WIDTH, this.TILE_HEIGHT, this.camera.x, this.camera.y);
 			if(pos.x > this.canvas.width + 128 || pos.x < -128 || pos.y > this.canvas.height + 128 || pos.y < -128) continue;
-			if(tiles[x][y] == 1) {
+			if(tiles[x][y] == 0) {
 				context.drawImage(this.images.grass.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
-				context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
-			} else {
+				//context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
+			} else if(tiles[x][y] == 1){
 				context.drawImage(this.images.tree.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
-				context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
-			}
-			context.fillStyle = "red";
+				//context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
+			} else {
 
-			var playerPos = util.isometricTransform(this.player.x/128, this.player.y/64, this.TILE_WIDTH, this.TILE_HEIGHT, 500, 0);
-			context.fillRect(playerPos.x, playerPos.y, 10, 10);
+			}
+			
+			
+			//var e = util.getTileCoords(p.x, p.y, 128, 64);
+			//tiles[e.x][e.y] = 1;
 				
-			
-			
 		}
 	}
-	//console.log(count);
-	//aa -= 0.001;
-  	//context.fillStyle = "rgba(0, 0, 0, "+aa+")";
-
-  	//context.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
 };
 
 
@@ -156,18 +181,33 @@ Utils.objectIso = function(x, y, oX, oY) {
 	return {x: isoX, y: isoY};
 }
 
-Utils.transformIsometric = function(x, y, w, h) {
-
-	var x0 = (2 * y + x) * (w >> 1);
-	var y0 = (2 * y - x) * (w >> 1);
+Utils.transformIsometric = function(x, y, w, h, oX, oY) {
+	//var x0 = (((x / (w/2)) + (y / (h/2))) / 2);
+	//var y0 = ((y / (h/2)) - (x / (h/2))) / 2;
+	 var x0 = (2 * y + x) * (w >> 1) + oX;
+	 var y0 = (2 * y - x) * (w >> 1) + oY;
 	return {x: x0, y: y0};
 };
 
 Utils.getTileCoords = function(x, y, w, h) {
-	var x0 = Math.floor(x / w);
-	var y0 = Math.floor(y / h);
+	var x0 = ~~(x / (w));
+	var y0 = ~~(y / (h));
 	return {x: x0, y: y0};
 };
+
+
+Utils.canMove = function(nX, nY, array) {
+  
+  var destTile = this.getTileCoords(nX, nY, 128, 64, array);
+  if(array[destTile.x][destTile.y]) {
+  	return false;
+  } else {
+  	return true;	
+  }
+  
+
+	
+}
 
 Utils.getMousePos = function(canvas, evt) {
 	var rect = canvas.getBoundingClientRect();
@@ -177,14 +217,31 @@ Utils.getMousePos = function(canvas, evt) {
 	};
 };
 
+Array.prototype.contains = function(obj) {
+    var i = this.length;
+    while (i--) {
+        if (this[i] === obj) {
+            return true;
+        }
+    }
+    return false;
+}
+
+window.timeStamp = function () {
+    return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
+}
+
 Utils.init2D = function(width, height) {
 	var tempArr = [];
 	for(var i = 0; i < height; i++) {
 		tempArr[i] = [];
-		for(var j = 0; j < width; j++) {
-			tempArr[i][j] = 0;
-			if(Math.random()*1 < 0.5) {
-				tempArr[i][j] = 1;
+		for(var j = 0; j < width; j++) {	
+			
+			if(j % 10 == 0 || i % 10 == 0) {
+				tempArr[i][j] = null;
+
+			} else {
+				tempArr[i][j] = 0;
 			}
 			
 		}
