@@ -32,8 +32,10 @@ Person.prototype.getPath = function(tarLoc) {
 
 Person.prototype.moveTo = function(tX, tY, callback) {
 	//this.getPath({x: tX, y: tY});
-	tX += 64;
-	tY += 32;
+	tX += 256;
+	tY += 168;
+	//tX += Game.camera.x;
+	//tY += Game.camera.y;
 	var pos = util.moveTo(this.x, this.y, tX, tY, 5);
 
 	this.vX = pos.x;
@@ -60,7 +62,7 @@ Person.prototype.doAction = function() {
 					console.log("STOP")
 				}.bind(this));
 			} else if(!this.atHome && this.atBridge) {
-				this.moveTo(Game.keyLocs.bridge1.x - 64, Game.keyLocs.bridge1.y - 32, function() {
+				this.moveTo(Game.keyLocs.bridge1.x + 128, Game.keyLocs.bridge1.y + 64, function() {
 					//Finished moving
 					this.atBridge = !this.atBridge;
 					this.atHome = !this.atHome;
@@ -82,7 +84,8 @@ Person.prototype.update = function(dt) {
 
 Person.prototype.render = function(ctx) {
 
-	ctx.fillRect((this.x * 1.5) + Game.camera.x, (this.y * 2) + Game.camera.y, 20, 20);
+	//ctx.fillRect(((this.x * 1.5) + Game.camera.x), (this.y * 2) + Game.camera.y, 10, 20);
+	ctx.fillRect((this.x + (Game.camera.x)) + (128), ((this.y) + Game.camera.y) + (Game.canvas.height/2), 10,10);
 	
 }
 	

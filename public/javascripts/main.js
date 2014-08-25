@@ -101,7 +101,7 @@ Game.init = function() {
 
 
 
-	var testPerson = new person(0, 0, null);
+	var testPerson = new person(671.7137818924919, 418.2072049724717, null);
 	testPerson.type = "build";
 	this.entities.push(testPerson);
 
