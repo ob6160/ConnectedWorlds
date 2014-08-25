@@ -17,11 +17,11 @@ function Person(x, y, type) {
 
 	this.building = {x: x, y: y};
 
-	
+	this.speed = util.randRange(10,16);
 
 
-	this.posTime = 10000;
-	this.timeLimit = 5000;
+	this.posTime = 0;
+	this.timeLimit = util.randRange(2000, 6000);
 
 }
 
@@ -40,7 +40,7 @@ Person.prototype.getPath = function(tarLoc) {
 }
 
 Person.prototype.moveTo = function(tX, tY, callback) {
-	var pos = util.moveTo(this.x, this.y, tX, tY, 10);
+	var pos = util.moveTo(this.x, this.y, tX, tY, this.speed);
 
 	this.vX = pos.x;
 	this.vY = pos.y;
@@ -76,7 +76,7 @@ Person.prototype.doAction = function() {
 						//Finished moving
 						this.atBridge = !this.atBridge;
 						this.atHome = !this.atHome;
-						Game.changeResources({stone: -10, wood: -10, people: 0});
+						Game.changeResources({stone: -10, wood: -10});
 						Game.buildBridge();
 						console.log("STOP");
 						this.posTime = 0;
@@ -85,13 +85,21 @@ Person.prototype.doAction = function() {
 
 						}
 					}
+				} else {
+					//NOT ENOUGH SHIT
+					this.moveTo(this.building.x, this.building.y, function() {
+						//Finished moving
+						this.atBridge = !this.atBridge;
+						this.atHome = !this.atHome;
+						this.posTime = 0;
+					}.bind(this));
 				}
 			} else if(this.type == "wood") {
 
 				if(this.atHome && !this.atTree) {
 					if(this.posTime > this.timeLimit) {
 						if(Game.level.wood > 0) {
-							this.moveTo((Game.keyLocs.wood1.x + 128) + Math.random()*300, (Game.keyLocs.wood1.y + 64) + Math.random()*300, function() {
+							this.moveTo((Game.keyLocs.wood1.x) + Math.random()*64, (Game.keyLocs.wood1.y) + Math.random()*32, function() {
 								//Finished moving
 								this.atTree = !this.atTree;
 								this.atHome = !this.atHome;
@@ -109,7 +117,7 @@ Person.prototype.doAction = function() {
 								//Finished moving
 								this.atTree = !this.atTree;
 								this.atHome = !this.atHome;
-								Game.changeResources({stone: 0, wood: 10, people: 0});
+								Game.changeResources({stone: 0, wood: 10});
 								console.log("STOP");
 								this.posTime = 0;
 							}.bind(this));

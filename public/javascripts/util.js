@@ -109,6 +109,10 @@ window.timeStamp = function () {
     return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
 }
 
+Utils.randRange = function(min, max) {
+	 return Math.random() * (max - min) + min;
+}
+
 Utils.moveTo = function(x, y, x0, y0, s) {
   var distanceX = (x0 - x);
   var distanceY = (y0 - y);

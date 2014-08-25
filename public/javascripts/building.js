@@ -10,7 +10,7 @@ function Building(x, y, type) {
 	//People contained by this building
 	this.people = [];
 
-	this.pCount = 5;
+	this.pCount = 1;
 	this.type = type;
 
 }

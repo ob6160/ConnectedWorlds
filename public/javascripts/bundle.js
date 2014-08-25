@@ -11,7 +11,7 @@ function Building(x, y, type) {
 	//People contained by this building
 	this.people = [];
 
-	this.pCount = 5;
+	this.pCount = 1;
 	this.type = type;
 
 }
@@ -114,8 +114,9 @@ window.Game = {
     startPos: {x: -402, y: -475},
     keyLocs: { bridge1: {x: 960, y: 832}, wood1: {x: 1216, y: 704} },
     entities: [],
-    level: {wood: 100, stone: 100},
-    buildingValues: {wood: { wood: -5, stone: 0 }, stone: {stone: -5}, build: {wood:-5}, war: {wood: -5, stone: -5}},
+    bridge: {l1: 6, l2: 7},
+    level: {level: "l1", wood: 100, stone: 100, aWood: 300, aStone: 300, bridgePro: 0},
+    buildingValues: {wood: { wood: -5, stone: 0 }, stone: {stone: -5, wood: 0}, build: {wood:-5, stone: 0}, war: {wood: -5, stone: -5}},
 };
 
 Game.getResources = function() {
@@ -142,13 +143,36 @@ Game.placeBuilding = function(x, y, type) {
 	var newBuilding = new building(x, y, type);
 	newBuilding.spawnPeople();
 	var resNeeded = this.getBuildValue(type);
-	console.log(resNeeded);
 	this.changeResources(resNeeded);
 	this.entities.push(newBuilding);
 }
 
 Game.getBuildValue = function(type) {
 	return this.buildingValues[type];
+}
+
+Game.buildBridge = function() {
+	//Every villager increases by 5%
+	this.level.bridgePro += 0.05;
+
+}
+
+
+
+Game.renderBridge = function(ctx) {
+	var tiles = [];
+	var count = this.bridge[this.level.level];
+	for(var i = 0; i < count; i++) {
+		var oX = (i * 64) + 64;
+		var oY = (i * 32) + 32;
+		ctx.fillStyle = "black";
+		if((i / count) < (this.level.bridgePro / count)) {
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridge1.x+64) - oX) + this.camera.x) , (((this.keyLocs.bridge1.y+32) + oY) + this.camera.y), 128, 64);
+		} else {
+
+		}
+		
+	}
 }
 
 Game.init = function() {
@@ -209,7 +233,7 @@ Game.init = function() {
 	this.timeCanvas.height = this.canvas.height;
 	this.timeCanvas.fillRect()*/
 
-	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null}, villager: { url:"./images/villager.png",image:null} };
+	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null}, villager: { url:"./images/villager.png",image:null}, bridge: { url:"./images/bridge.png",image:null} };
 	for(var i in this.images) {
 		var newImage = new Image();
 		this.images[i].image = newImage;
@@ -275,8 +299,11 @@ Game.render = function(dt) {
   	context.clearRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
   	context.fillStyle = "rgb(0, 148, 255)";
   	context.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+	
+	this.renderBridge(context);
+
 	for(var y = 0; y < this.tiles.length; y++) {
-		for(var x = 0; x < this.tiles[y].length; x++) {
+		for(var x = 0; x < this.tiles[y].length	; x++) {
 			
 			var pos = util.isometricTransform(x, y, this.TILE_WIDTH, this.TILE_HEIGHT, this.camera.x, this.camera.y);
 			
@@ -317,8 +344,9 @@ Game.render = function(dt) {
 		context.fillText("Start building... create settlements to build a bridge... Good luck", (this.canvas.width/2 - 300) + this.camera.x, 100 + this.camera.y/4);
 		context.font = "30pt black bold";
 		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
-				context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+		context.fillText("Bridge: " + this.level.bridgePro.toFixed(2), Math.abs(this.startPos.x - 350) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 	} else {
 		context.font = "30pt black bold";
 		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
@@ -326,9 +354,11 @@ Game.render = function(dt) {
 		context.font = "30pt black bold";
 		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
-
+		context.fillText("Bridge: " + this.level.bridgePro.toFixed(2), Math.abs(this.startPos.x - 350) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.drawImage(this.images[this.selector.image].image, this.selectedTile.isoX, this.selectedTile.isoY, this.TILE_WIDTH, this.TILE_HEIGHT);
 	}
+
+	
 	
 };
 
@@ -354,11 +384,11 @@ function Person(x, y, type) {
 
 	this.building = {x: x, y: y};
 
-	
+	this.speed = util.randRange(10,16);
 
 
-	this.posTime = 10000;
-	this.timeLimit = 5000;
+	this.posTime = 0;
+	this.timeLimit = util.randRange(2000, 6000);
 
 }
 
@@ -377,7 +407,7 @@ Person.prototype.getPath = function(tarLoc) {
 }
 
 Person.prototype.moveTo = function(tX, tY, callback) {
-	var pos = util.moveTo(this.x, this.y, tX, tY, 10);
+	var pos = util.moveTo(this.x, this.y, tX, tY, this.speed);
 
 	this.vX = pos.x;
 	this.vY = pos.y;
@@ -413,7 +443,7 @@ Person.prototype.doAction = function() {
 						//Finished moving
 						this.atBridge = !this.atBridge;
 						this.atHome = !this.atHome;
-						Game.changeResources({stone: -10, wood: -10, people: 0});
+						Game.changeResources({stone: -10, wood: -10});
 						Game.buildBridge();
 						console.log("STOP");
 						this.posTime = 0;
@@ -422,13 +452,21 @@ Person.prototype.doAction = function() {
 
 						}
 					}
+				} else {
+					//NOT ENOUGH SHIT
+					this.moveTo(this.building.x, this.building.y, function() {
+						//Finished moving
+						this.atBridge = !this.atBridge;
+						this.atHome = !this.atHome;
+						this.posTime = 0;
+					}.bind(this));
 				}
 			} else if(this.type == "wood") {
 
 				if(this.atHome && !this.atTree) {
 					if(this.posTime > this.timeLimit) {
 						if(Game.level.wood > 0) {
-							this.moveTo((Game.keyLocs.wood1.x + 128) + Math.random()*300, (Game.keyLocs.wood1.y + 64) + Math.random()*300, function() {
+							this.moveTo((Game.keyLocs.wood1.x) + Math.random()*64, (Game.keyLocs.wood1.y) + Math.random()*32, function() {
 								//Finished moving
 								this.atTree = !this.atTree;
 								this.atHome = !this.atHome;
@@ -446,7 +484,7 @@ Person.prototype.doAction = function() {
 								//Finished moving
 								this.atTree = !this.atTree;
 								this.atHome = !this.atHome;
-								Game.changeResources({stone: 0, wood: 10, people: 0});
+								Game.changeResources({stone: 0, wood: 10});
 								console.log("STOP");
 								this.posTime = 0;
 							}.bind(this));
@@ -587,6 +625,10 @@ Array.prototype.contains = function(obj) {
 
 window.timeStamp = function () {
     return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
+}
+
+Utils.randRange = function(min, max) {
+	 return Math.random() * (max - min) + min;
 }
 
 Utils.moveTo = function(x, y, x0, y0, s) {
