@@ -46,6 +46,21 @@ Utils.canMove = function(nX, nY, array) {
   } else {
   	return true;	
   }	
+};
+
+Utils.canAffordObject = function(type) {
+	var res = Game.getResources();
+	if(type == "wood" && res.wood >= 5) {
+		return true;
+	} else if(type == "stone" && res.stone >= 5) {
+		return true;
+	} else if(type == "build" && res.wood >= 5) {
+		return true;
+	} else if(type == "war" && res.stone >= 5 && res.wood >= 5) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 Utils.changeObject = function(class1, images, selector) {	

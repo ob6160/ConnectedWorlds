@@ -1,4 +1,45 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var person = require('./person');
+
+function Building(x, y, type) {
+	this.x = x;
+	this.y = y;
+
+	//In case of attack
+	this.health = 100;
+
+	//People contained by this building
+	this.people = [];
+
+	this.pCount = 5;
+	this.type = type;
+
+}
+
+Building.prototype.spawnPeople = function() {
+	for(var i = 0; i < this.pCount; i++) {
+		var personNew = new person(this.x, this.y, this.type);
+		this.people.push(personNew);
+	}
+}
+
+Building.prototype.update  = function(dt) {
+	for(var i = 0; i < this.people.length; i++) {
+		this.people[i].update(dt);
+	}
+}
+
+Building.prototype.render = function(ctx) {
+	ctx.drawImage(Game.images[this.type].image, this.x + Game.camera.x, this.y + Game.camera.y, 128, 64);
+	for(var i = 0; i < this.people.length; i++) {
+		this.people[i].render(ctx);
+	}
+	
+
+}
+
+module.exports = Building;
+},{"./person":5}],2:[function(require,module,exports){
 var util = require("./util");
 
 function Level() {
@@ -23,19 +64,20 @@ Level.prototype.appendTo = function(world) {
 }
 
 module.exports = Level;
-},{"./util":5}],2:[function(require,module,exports){
+},{"./util":6}],3:[function(require,module,exports){
 function Light() {
 
 }
 
 module.exports = Light;
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 var light  = require('./light'),
 level = require('./level'),
 vector = require('./vector'),
 util = require('./util'),
 world = require('./world'),
-person = require("./person");
+person = require("./person"),
+building = require("./building");
 
 window.Game = {
 	canvas: document.getElementById("canvas"),
@@ -65,34 +107,48 @@ window.Game = {
     },
     images: {},
     keys: [],
-    selectedTile: {x: 0, y:0},
+    selectedTile: {x: 0, y:0, noCam: {x: 0, y: 0}},
     easystar: new EasyStar.js(),
     selector: { image: "stone" },
-    resources: {stone: 10, wood: 10, people: 0},
     starting: true,
     startPos: {x: -402, y: -475},
-    keyLocs: { bridge1: {x: 671.7137818924919, y: 418.2072049724717} },
+    keyLocs: { bridge1: {x: 960, y: 832}, wood1: {x: 1216, y: 704} },
     entities: [],
+    level: {wood: 100, stone: 100},
+    buildingValues: {wood: { wood: -5, stone: 0 }, stone: {stone: -5}, build: {wood:-5}, war: {wood: -5, stone: -5}},
 };
 
 Game.getResources = function() {
 	
-	if(!this.resources) return false;
-	return this.resources;
+	if(!this.level) return false;
+	return this.level;
 }
 
 Game.setResources = function(res) {
 	if(!res) return false;
-	this.resources = res;
+	this.level = res;
 	return true;
 }
 
 Game.changeResources = function(res) {
 	if(!res) return false;
-	for(var i in this.resources) {
-		this.resources[i] += res[i];
-	}
+	this.level.wood += res.wood;
+	this.level.stone += res.stone;
+
 	return true;
+}
+
+Game.placeBuilding = function(x, y, type) {
+	var newBuilding = new building(x, y, type);
+	newBuilding.spawnPeople();
+	var resNeeded = this.getBuildValue(type);
+	console.log(resNeeded);
+	this.changeResources(resNeeded);
+	this.entities.push(newBuilding);
+}
+
+Game.getBuildValue = function(type) {
+	return this.buildingValues[type];
 }
 
 Game.init = function() {
@@ -108,6 +164,15 @@ Game.init = function() {
 		var selectedTileIso = util.isometricTransform(~~this.selectedTile.x, ~~this.selectedTile.y, this.TILE_WIDTH, this.TILE_HEIGHT, this.camera.x, this.camera.y);
 		this.selectedTile.isoX = selectedTileIso.x;
 		this.selectedTile.isoY = selectedTileIso.y;
+		this.selectedTile.ipx = selectedTileIso.x - Game.camera.x;
+		this.selectedTile.ipy = selectedTileIso.y - Game.camera.y;
+
+	}.bind(this));
+	this.canvas.addEventListener('click', function(e) {
+		if(util.canAffordObject(this.selector.type)) {
+			this.placeBuilding(this.selectedTile.ipx , this.selectedTile.ipy, this.selector.type);	
+		}
+		
 	}.bind(this));
 	$(document).keydown(function (e) {
 	    this.keys[e.keyCode] = true;
@@ -117,36 +182,23 @@ Game.init = function() {
 	    delete this.keys[e.keyCode];
 	}.bind(this));
 
-	this.canvas.requestPointerLock = this.canvas.requestPointerLock ||
-                            this.canvas.mozRequestPointerLock ||
-                            this.canvas.webkitRequestPointerLock;
-	this.canvas.requestPointerLock()
-
-
-
 	var images = this.images;
 	var selector = this.selector;
 	$(".select img").on("click", function(e) {
 		var class1 = $(this).attr("class");
 		util.changeObject(class1, images, selector);
+
 	});
-
-
-
-	var testPerson = new person(671.7137818924919, 418.2072049724717, null);
-	testPerson.type = "build";
-	this.entities.push(testPerson);
-
-
+	util.changeObject("wood", images, selector);
+	// var testPerson = new person(960, 832, null);
+	// testPerson.type = "build";
+	// this.entities.push(testPerson);
 
 	/* Create Game Map */
 
 	this.tiles = world;
-
-
-
-	this.easystar.setGrid(this.tiles);
-	this.easystar.setAcceptableTiles([0]);
+	// this.easystar.setGrid(this.tiles);
+	// this.easystar.setAcceptableTiles([0]);
 	
 	this.context.imageSmoothingEnabled = false;
 	
@@ -157,23 +209,16 @@ Game.init = function() {
 	this.timeCanvas.height = this.canvas.height;
 	this.timeCanvas.fillRect()*/
 
-	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null} };
+	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null}, villager: { url:"./images/villager.png",image:null} };
 	for(var i in this.images) {
 		var newImage = new Image();
-		
 		this.images[i].image = newImage;
 		newImage.onload = function() {
 			this.tick();
 		}.bind(this);
 		newImage.src = this.images[i].url;
 	}
-
-
-
-	
 };
-
-
 
 Game.tick = function() {
 	if (this.running) {
@@ -197,16 +242,7 @@ Game.update = function(dt, keys) {
 	dX = this.player.speed * dt;
 	dY = this.player.speed * dt;
 
-	if (keys[87]) {
-		this.camera.y += dY/4; 
-	} else if(keys[83]) {
-		 this.camera.y -= dY/4;
-	} 
-	if (keys[65]) {
-		this.camera.x += dX/4; 
-	} else if (keys[68]) {
-		this.camera.x -= dX/4;
-	}
+	
 	if(this.starting) {
 		var vel = util.moveTo(this.camera.x, this.camera.y, this.startPos.x, this.startPos.y, 3);
 		if(~~this.camera.x === ~~this.startPos.x) {
@@ -215,9 +251,18 @@ Game.update = function(dt, keys) {
 			this.camera.x += vel.x;
 			this.camera.y += vel.y;
 		}
-		
+		} else {
+			if (keys[87]) {
+			this.camera.y += dY/4; 
+		} else if(keys[83]) {
+			 this.camera.y -= dY/4;
+		} 
+		if (keys[65]) {
+			this.camera.x += dX/4; 
+		} else if (keys[68]) {
+			this.camera.x -= dX/4;
+		}
 	}
-
 	for(var i = 0; i < this.entities.length; i++) {
 		this.entities[i].update(dt);
 	}
@@ -228,7 +273,8 @@ var aa = 1;
 Game.render = function(dt) { 
   	var context = this.context;
   	context.clearRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
-
+  	context.fillStyle = "rgb(0, 148, 255)";
+  	context.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
 	for(var y = 0; y < this.tiles.length; y++) {
 		for(var x = 0; x < this.tiles[y].length; x++) {
 			
@@ -260,6 +306,8 @@ Game.render = function(dt) {
 		}
 	}
 
+	context.fillStyle = "white";
+
 	for(var i = 0; i < this.entities.length; i++) {
 		this.entities[i].render(this.context);
 	}
@@ -269,9 +317,16 @@ Game.render = function(dt) {
 		context.fillText("Start building... create settlements to build a bridge... Good luck", (this.canvas.width/2 - 300) + this.camera.x, 100 + this.camera.y/4);
 		context.font = "30pt black bold";
 		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
+				context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 	} else {
 		context.font = "30pt black bold";
-			context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
+		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
+
+		context.font = "30pt black bold";
+		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+
 		context.drawImage(this.images[this.selector.image].image, this.selectedTile.isoX, this.selectedTile.isoY, this.TILE_WIDTH, this.TILE_HEIGHT);
 	}
 	
@@ -279,10 +334,10 @@ Game.render = function(dt) {
 
 
 Game.init();
-},{"./level":1,"./light":2,"./person":4,"./util":5,"./vector":6,"./world":7}],4:[function(require,module,exports){
+},{"./building":1,"./level":2,"./light":3,"./person":5,"./util":6,"./vector":7,"./world":8}],5:[function(require,module,exports){
 var util = require("./util");
 
-function Person(x, y, building) {
+function Person(x, y, type) {
 	this.x = x;
 	this.y = y;
 	this.w = 4;
@@ -290,11 +345,20 @@ function Person(x, y, building) {
 	this.vY = 0;
 	this.vX = 0;
 	this.path = [];
-	this.type;
-	this.building;
+	this.type = type;
+
 	this.atHome = true;
 	this.atBridge = false;
-	this.currentMoveTo = {x: 0, y: 0};
+	this.atTree = false;
+
+
+	this.building = {x: x, y: y};
+
+	
+
+
+	this.posTime = 10000;
+	this.timeLimit = 5000;
 
 }
 
@@ -313,12 +377,7 @@ Person.prototype.getPath = function(tarLoc) {
 }
 
 Person.prototype.moveTo = function(tX, tY, callback) {
-	//this.getPath({x: tX, y: tY});
-	tX += 256;
-	tY += 168;
-	//tX += Game.camera.x;
-	//tY += Game.camera.y;
-	var pos = util.moveTo(this.x, this.y, tX, tY, 5);
+	var pos = util.moveTo(this.x, this.y, tX, tY, 10);
 
 	this.vX = pos.x;
 	this.vY = pos.y;
@@ -329,35 +388,81 @@ Person.prototype.moveTo = function(tX, tY, callback) {
 	} else {
 		
 	}
-	//if()
 }
 
 Person.prototype.doAction = function() {
+	this.posTime++;
 	var res = Game.getResources();
 	if(this.type == "build") {
 		if(res.stone > 1 && res.wood > 1) {
 			if(this.atHome && !this.atBridge) {
-				this.moveTo(Game.keyLocs.bridge1.x, Game.keyLocs.bridge1.y, function() {
-					//Finished moving
-					this.atBridge = !this.atBridge;
-					this.atHome = !this.atHome;
-					console.log("STOP")
-				}.bind(this));
+				if(this.posTime > this.timeLimit) {
+						this.moveTo(Game.keyLocs.bridge1.x + 128, Game.keyLocs.bridge1.y + 64, function() {
+						//Finished moving
+						this.atBridge = !this.atBridge;
+						this.atHome = !this.atHome;
+						console.log("STOP")
+						this.posTime = 0;
+					}.bind(this));
+				} else {
+
+				}
 			} else if(!this.atHome && this.atBridge) {
-				this.moveTo(Game.keyLocs.bridge1.x + 128, Game.keyLocs.bridge1.y + 64, function() {
-					//Finished moving
-					this.atBridge = !this.atBridge;
-					this.atHome = !this.atHome;
-					console.log("STOP")
-				}.bind(this));
-			}
+				if(this.posTime > this.timeLimit) {
+					this.moveTo(this.building.x, this.building.y, function() {
+						//Finished moving
+						this.atBridge = !this.atBridge;
+						this.atHome = !this.atHome;
+						Game.changeResources({stone: -10, wood: -10, people: 0});
+						Game.buildBridge();
+						console.log("STOP");
+						this.posTime = 0;
+					}.bind(this));
+				} else {
+
+						}
+					}
+				}
+			} else if(this.type == "wood") {
+
+				if(this.atHome && !this.atTree) {
+					if(this.posTime > this.timeLimit) {
+						if(Game.level.wood > 0) {
+							this.moveTo((Game.keyLocs.wood1.x + 128) + Math.random()*300, (Game.keyLocs.wood1.y + 64) + Math.random()*300, function() {
+								//Finished moving
+								this.atTree = !this.atTree;
+								this.atHome = !this.atHome;
+								console.log("STOP")
+								this.posTime = 0;
+							}.bind(this));
+						}
+					
+						} else {
+
+						}
+					} else if(!this.atHome && this.atTree) {
+						if(this.posTime > this.timeLimit) {
+							this.moveTo(this.building.x, this.building.y, function() {
+								//Finished moving
+								this.atTree = !this.atTree;
+								this.atHome = !this.atHome;
+								Game.changeResources({stone: 0, wood: 10, people: 0});
+								console.log("STOP");
+								this.posTime = 0;
+							}.bind(this));
+						} else {
+
+						}
 		}
 	}
 }
 
 Person.prototype.update = function(dt) {
+
 	
 	this.doAction();
+
+	
 
 	this.x += this.vX;
 	this.y += this.vY;	
@@ -365,14 +470,14 @@ Person.prototype.update = function(dt) {
 }
 
 Person.prototype.render = function(ctx) {
+	
+	ctx.drawImage(Game.images.villager.image, this.x + Game.camera.x, this.y + Game.camera.y, 10, 20);
 
-	//ctx.fillRect(((this.x * 1.5) + Game.camera.x), (this.y * 2) + Game.camera.y, 10, 20);
-	ctx.fillRect((this.x + (Game.camera.x)) + (128), ((this.y) + Game.camera.y) + (Game.canvas.height/2), 10,10);
 	
 }
 	
 module.exports = Person;
-},{"./util":5}],5:[function(require,module,exports){
+},{"./util":6}],6:[function(require,module,exports){
 Utils = {};
 
 Utils.isometricTransform = function(x, y, w, h, oX, oY) {
@@ -421,6 +526,21 @@ Utils.canMove = function(nX, nY, array) {
   } else {
   	return true;	
   }	
+};
+
+Utils.canAffordObject = function(type) {
+	var res = Game.getResources();
+	if(type == "wood" && res.wood >= 5) {
+		return true;
+	} else if(type == "stone" && res.stone >= 5) {
+		return true;
+	} else if(type == "build" && res.wood >= 5) {
+		return true;
+	} else if(type == "war" && res.stone >= 5 && res.wood >= 5) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 Utils.changeObject = function(class1, images, selector) {	
@@ -507,13 +627,13 @@ Utils.init2D = function(width, height) {
 
 
 module.exports = Utils;
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 function Vector() {
 
 }
 
 module.exports = Vector;
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 
 var world = [
   [-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,2,2,2,2,2,2,2,2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2],
@@ -558,4 +678,4 @@ var world = [
 ]
 
 module.exports = world;
-},{}]},{},[3]);
+},{}]},{},[4]);
