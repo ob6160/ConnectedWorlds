@@ -39,10 +39,10 @@ window.Game = {
     selector: { image: "stone" },
     starting: true,
     startPos: {x: -402, y: -475},
-    keyLocs: { bridge1: {x: 960, y: 832}, wood1: {x: 1216, y: 704} },
+    keyLocs: { bridge1: {x: 960, y: 832}, bridge1End: {x: 576, y: 1088}, wood1: {x: 1216, y: 704}, bridge2: { x: -576, y: 1408 }, bridgeCurrent: {x: 0, y: 0}, bridgeCurrentEnd: {x: 0, y: 0}, endGame: {x: -1280, y: 1760}, wood2: {x: 384, y: 1248} },
     entities: [],
-    bridge: {l1: 6, l2: 7},
-    level: {level: "l1", wood: 100, stone: 100, aWood: 300, aStone: 300, bridgePro: 0},
+    bridge: {l1: 6, l2: 7, l3: 0},
+    level: {level: "l1", wood: 100, stone: 100, aWood: 300, aStone: 300, bridgePro: 0, level1: false, level2: false},
     buildingValues: {wood: { wood: -5, stone: 0 }, stone: {stone: -5, wood: 0}, build: {wood:-5, stone: 0}, war: {wood: -5, stone: -5}},
 };
 
@@ -80,13 +80,33 @@ Game.getBuildValue = function(type) {
 
 Game.buildBridge = function() {
 	//Every villager increases by 5%
-	this.level.bridgePro += 0.05;
+	this.level.bridgePro += 0.2;
 
 }
 
 
 
 Game.renderBridge = function(ctx) {
+	
+	if(this.level.bridgePro > this.bridge[this.level.level] + 1) {
+		if(!this.level.level2) {
+			this.level.level = "l2";
+			this.level.bridgePro = 0;
+			this.keyLocs.bridgeCurrent = this.keyLocs.bridge2;
+			this.level.level1 = true;
+		}
+	
+	} 
+
+
+	if(this.level.level1 && !this.level.level2 && this.level.bridgePro >= this.bridge[this.level.level]) {
+
+			//this.level.level = "l3";
+			this.level.level2 = true;
+			console.log("LEVEL 3");
+		
+	}
+
 	var tiles = [];
 	var count = this.bridge[this.level.level];
 	for(var i = 0; i < count; i++) {
@@ -94,11 +114,25 @@ Game.renderBridge = function(ctx) {
 		var oY = (i * 32) + 32;
 		ctx.fillStyle = "black";
 		if((i / count) < (this.level.bridgePro / count)) {
-			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridge1.x+64) - oX) + this.camera.x) , (((this.keyLocs.bridge1.y+32) + oY) + this.camera.y), 128, 64);
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridgeCurrent.x+64) - oX) + this.camera.x) , (((this.keyLocs.bridgeCurrent.y+32) + oY) + this.camera.y), 128, 64);
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridgeCurrent.x) - oX) + this.camera.x) , (((this.keyLocs.bridgeCurrent.y) + oY) + this.camera.y), 128, 64);
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridgeCurrent.x+128) - oX) + this.camera.x) , (((this.keyLocs.bridgeCurrent.y+64) + oY) + this.camera.y), 128, 64);
 		} else {
 
 		}
 		
+	}
+
+	if(this.level.level1) {
+		for(var i = 0; i < count; i++) {
+			var oX = (i * 64) + 64;
+			var oY = (i * 32) + 32;
+			ctx.fillStyle = "black";
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridge1.x+64) - oX) + this.camera.x) , (((this.keyLocs.bridge1.y+32) + oY) + this.camera.y), 128, 64);	
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridge1.x) - oX) + this.camera.x) , (((this.keyLocs.bridge1.y) + oY) + this.camera.y), 128, 64);	
+			ctx.drawImage(this.images.bridge.image, (((this.keyLocs.bridge1.x+128) - oX) + this.camera.x) , (((this.keyLocs.bridge1.y+64) + oY) + this.camera.y), 128, 64);	
+
+		}
 	}
 }
 
@@ -146,6 +180,9 @@ Game.init = function() {
 	// this.entities.push(testPerson);
 
 	/* Create Game Map */
+
+
+	this.keyLocs.bridgeCurrent = this.keyLocs.bridge1;
 
 	this.tiles = world;
 	// this.easystar.setGrid(this.tiles);
@@ -214,6 +251,9 @@ Game.update = function(dt, keys) {
 			this.camera.x -= dX/4;
 		}
 	}
+
+
+
 	for(var i = 0; i < this.entities.length; i++) {
 		this.entities[i].update(dt);
 	}
@@ -224,7 +264,7 @@ var aa = 1;
 Game.render = function(dt) { 
   	var context = this.context;
   	context.clearRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
-  	context.fillStyle = "rgb(0, 148, 255)";
+  	context.fillStyle = "rgba(0, 148, 255, 0.5)";
   	context.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
 	
 	this.renderBridge(context);
@@ -260,6 +300,9 @@ Game.render = function(dt) {
 		}
 	}
 
+	context.fillStyle = "rgba(255,255,255,0.5)";
+	util.roundRect(this.context, 10, 10, 500, 100, 2, true, true);
+
 	context.fillStyle = "white";
 
 	for(var i = 0; i < this.entities.length; i++) {
@@ -267,21 +310,31 @@ Game.render = function(dt) {
 	}
 
 	if(this.starting) {
-		context.font = "30pt Arial"
-		context.fillText("Start building... create settlements to build a bridge... Good luck", (this.canvas.width/2 - 300) + this.camera.x, 100 + this.camera.y/4);
-		context.font = "30pt Arial";
-		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
-		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
-		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
-		context.fillText("Bridge: " + this.level.bridgePro.toFixed(2), Math.abs(this.startPos.x - 350) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+		context.font = "900 30px Arial"
+		
+		context.fillText("Your aim is to reach the star... use WSAD to look around to find it!", (this.canvas.width/2 - 300) + this.camera.x, 50 + this.camera.y/4);
+		context.fillText("Start building... mine wood and stone then place builders to begin building a bridge", (this.canvas.width/2 - 300) + this.camera.x, 125 + this.camera.y/4);
+		context.fillText("After you build the first you will need to build a second to reach your goal.", (this.canvas.width/2 - 300) + this.camera.x, 200 + this.camera.y/4);
+		
+		context.font = "900 30px Arial";
+		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y) + this.camera.y);
+		context.fillText("Level 2", (this.startPos.x + 450) + this.camera.x, Math.abs(this.startPos.y) + this.camera.y);
+	
+		context.fillText("Wood: " + this.level.wood, 20, 50);
+		context.fillText("Stone: " + this.level.stone, 20, 100);
+		context.fillText("Bridge: " + this.level.bridgePro.toFixed(1), 250, 75);
 	} else {
-		context.font = "30pt Arial";
-		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
+		context.font = "900 30px Arial";
+		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y) + this.camera.y);
+		context.fillText("Level 2", (this.startPos.x + 450) + this.camera.x, Math.abs(this.startPos.y) + this.camera.y);
 
-		context.font = "30pt Arial";
-		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
-		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
-		context.fillText("Bridge: " + this.level.bridgePro.toFixed(2), Math.abs(this.startPos.x - 350) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
+
+		context.font = "900 30px Arial";
+		
+		
+		context.fillText("Wood: " + this.level.wood, 20, 50);
+		context.fillText("Stone: " + this.level.stone, 20, 100);
+		context.fillText("Bridge: " + this.level.bridgePro.toFixed(1), 250, 75);
 		context.drawImage(this.images[this.selector.image].image, this.selectedTile.isoX, this.selectedTile.isoY, this.TILE_WIDTH, this.TILE_HEIGHT);
 	}
 

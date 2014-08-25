@@ -13,8 +13,8 @@ function Person(x, y, type) {
 	this.atHome = true;
 	this.atBridge = false;
 	this.atTree = false;
-
-
+	this.bridgeEnd = false;
+	this.bridgeEnd1 = false;
 	this.building = {x: x, y: y};
 
 	this.speed = util.randRange(10,16);
@@ -57,16 +57,62 @@ Person.prototype.doAction = function() {
 	this.posTime++;
 	var res = Game.getResources();
 	if(this.type == "build") {
-		if(res.stone > 1 && res.wood > 1) {
+		if(res.stone > 5 && res.wood > 5) {
 			if(this.atHome && !this.atBridge) {
 				if(this.posTime > this.timeLimit) {
+					
+					if((Game.level.level1 && !Game.level.level2 && this.building.y < Game.keyLocs.bridge1.y)) {//IF LEVEL 2 AND SECTION1 MOVE ACROSS BRIDGE
 						this.moveTo(Game.keyLocs.bridge1.x + 128, Game.keyLocs.bridge1.y + 64, function() {
-						//Finished moving
-						this.atBridge = !this.atBridge;
-						this.atHome = !this.atHome;
-						console.log("STOP")
-						this.posTime = 0;
-					}.bind(this));
+							this.bridgeEnd = true;
+						
+						}.bind(this));
+						
+						if(this.bridgeEnd) {
+									this.moveTo(Game.keyLocs.bridgeCurrent.x + 128, Game.keyLocs.bridgeCurrent.y + 64, function() {
+									//ACROSS 1ST BRIDGE CONTINUE
+									this.bridgeEnd != this.bridgeEnd;
+									this.atBridge = !this.atBridge;
+									this.atHome = !this.atHome;
+									console.log("STOP");
+									if(res.stone > 1 && res.wood > 1) {
+										Game.changeResources({stone: -10, wood: -10});
+									} else {
+
+									}
+							
+									Game.buildBridge();
+									this.posTime = 0;
+							}.bind(this));
+						}
+					} else if(Game.level.level2 && this.building.y < Game.keyLocs.bridge2.y) {
+						this.moveTo(Game.keyLocs.bridge2.x + 128, Game.keyLocs.bridge2.y + 64, function() {
+							this.bridgeEnd1 = true;
+						
+						}.bind(this));
+
+						if(this.bridgeEnd1) {
+							this.moveTo(Game.keyLocs.endGame.x + 128, Game.keyLocs.endGame.y + 64, function() {
+								console.log("END GAME");
+							}.bind(this));
+						}
+
+					} else {
+						this.moveTo(Game.keyLocs.bridgeCurrent.x + 128, Game.keyLocs.bridgeCurrent.y + 64, function() {
+							//Finished moving
+							this.atBridge = !this.atBridge;
+							this.atHome = !this.atHome;
+							console.log("STOP")
+							this.posTime = 0;
+							if(res.stone > 1 && res.wood > 1) {
+								Game.changeResources({stone: -10, wood: -10});
+							} else {
+
+							}
+						
+						Game.buildBridge();
+						}.bind(this));
+					}
+				
 				} else {
 
 				}
@@ -76,8 +122,7 @@ Person.prototype.doAction = function() {
 						//Finished moving
 						this.atBridge = !this.atBridge;
 						this.atHome = !this.atHome;
-						Game.changeResources({stone: -10, wood: -10});
-						Game.buildBridge();
+						
 						console.log("STOP");
 						this.posTime = 0;
 					}.bind(this));
@@ -98,7 +143,8 @@ Person.prototype.doAction = function() {
 
 				if(this.atHome && !this.atTree) {
 					if(this.posTime > this.timeLimit) {
-						if(Game.level.wood > 0) {
+						
+						if(this.building.y < Game.keyLocs.bridge1.y) { //SHITTY NUMBER 1 SPPOT
 							this.moveTo((Game.keyLocs.wood1.x) + Math.random()*64, (Game.keyLocs.wood1.y) + Math.random()*32, function() {
 								//Finished moving
 								this.atTree = !this.atTree;
@@ -106,10 +152,18 @@ Person.prototype.doAction = function() {
 								console.log("STOP")
 								this.posTime = 0;
 							}.bind(this));
+						} else { //CRAPPY NUMBER 2 SPOT
+							this.moveTo((Game.keyLocs.wood2.x) + Math.random()*64, (Game.keyLocs.wood2.y) + Math.random()*32, function() {
+								//Finished moving
+								this.atTree = !this.atTree;
+								this.atHome = !this.atHome;
+								console.log("STOP")
+								this.posTime = 0;
+							}.bind(this));
 						}
-					
+							
 						} else {
-
+							
 						}
 					} else if(!this.atHome && this.atTree) {
 						if(this.posTime > this.timeLimit) {
@@ -127,6 +181,7 @@ Person.prototype.doAction = function() {
 		}
 	}
 }
+
 
 Person.prototype.update = function(dt) {
 
