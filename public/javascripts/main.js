@@ -1,9 +1,11 @@
 var light  = require('./light'),
 level = require('./level'),
 vector = require('./vector'),
-util = require('./util');
+util = require('./util'),
+world = require('./world'),
+person = require("./person");
 
-var Game = {
+window.Game = {
 	canvas: document.getElementById("canvas"),
 	context: canvas.getContext("2d"),
 	time: 0,
@@ -31,9 +33,35 @@ var Game = {
     },
     images: {},
     keys: [],
+    selectedTile: {x: 0, y:0},
+    easystar: new EasyStar.js(),
+    selector: { image: "stone" },
+    resources: {stone: 10, wood: 10, people: 0},
+    starting: true,
+    startPos: {x: -402, y: -475},
+    keyLocs: { bridge1: {x: 671.7137818924919, y: 418.2072049724717} },
+    entities: [],
 };
 
+Game.getResources = function() {
+	
+	if(!this.resources) return false;
+	return this.resources;
+}
 
+Game.setResources = function(res) {
+	if(!res) return false;
+	this.resources = res;
+	return true;
+}
+
+Game.changeResources = function(res) {
+	if(!res) return false;
+	for(var i in this.resources) {
+		this.resources[i] += res[i];
+	}
+	return true;
+}
 
 Game.init = function() {
 	this.canvas.width = this.CANVAS_WIDTH;
@@ -41,14 +69,13 @@ Game.init = function() {
 	/* Init Listeners */
 	this.canvas.addEventListener('mousemove', function(e) {
 		var pos = util.getMousePos(this.canvas, e);
-		this.mPos = pos;
-
-		var destTile = util.isometricTransform((this.mPos.x/128)/128, (this.mPos.y/64)/64, 128, 64, this.camera.x, this.camera.y);
-		
-		var x1 = ~~destTile.x;
-		var y1 = ~~destTile.y;
-		console.log(x1, y1);
-		this.tiles[x1][y1] = 1;
+        this.mPos = pos;
+		var x = this.mPos.x;
+		var y = this.mPos.y;
+		this.selectedTile = util.getTileCoords(x, y, this.TILE_WIDTH, this.TILE_HEIGHT, this.camera.x, this.camera.y);
+		var selectedTileIso = util.isometricTransform(~~this.selectedTile.x, ~~this.selectedTile.y, this.TILE_WIDTH, this.TILE_HEIGHT, this.camera.x, this.camera.y);
+		this.selectedTile.isoX = selectedTileIso.x;
+		this.selectedTile.isoY = selectedTileIso.y;
 	}.bind(this));
 	$(document).keydown(function (e) {
 	    this.keys[e.keyCode] = true;
@@ -57,9 +84,40 @@ Game.init = function() {
 	$(document).keyup(function (e) {
 	    delete this.keys[e.keyCode];
 	}.bind(this));
-	/* Create Game Map */
-	this.tiles = util.init2D(100, 100);
 
+	this.canvas.requestPointerLock = this.canvas.requestPointerLock ||
+                            this.canvas.mozRequestPointerLock ||
+                            this.canvas.webkitRequestPointerLock;
+	this.canvas.requestPointerLock()
+
+
+
+	var images = this.images;
+	var selector = this.selector;
+	$(".select img").on("click", function(e) {
+		var class1 = $(this).attr("class");
+		util.changeObject(class1, images, selector);
+	});
+
+
+
+	var testPerson = new person(0, 0, null);
+	testPerson.type = "build";
+	this.entities.push(testPerson);
+
+
+
+	/* Create Game Map */
+
+	this.tiles = world;
+
+
+
+	this.easystar.setGrid(this.tiles);
+	this.easystar.setAcceptableTiles([0]);
+	
+	this.context.imageSmoothingEnabled = false;
+	
 	/* Create Time Canvas */
 	/*this.timeCanvas = document.createElement("canvas");
 	this.timeContext = this.timeCanvas.getContext("2d");
@@ -67,7 +125,7 @@ Game.init = function() {
 	this.timeCanvas.height = this.canvas.height;
 	this.timeCanvas.fillRect()*/
 
-	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null} };
+	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null} };
 	for(var i in this.images) {
 		var newImage = new Image();
 		
@@ -78,8 +136,12 @@ Game.init = function() {
 		newImage.src = this.images[i].url;
 	}
 
+
+
 	
 };
+
+
 
 Game.tick = function() {
 	if (this.running) {
@@ -113,38 +175,74 @@ Game.update = function(dt, keys) {
 	} else if (keys[68]) {
 		this.camera.x -= dX/4;
 	}
+	if(this.starting) {
+		var vel = util.moveTo(this.camera.x, this.camera.y, this.startPos.x, this.startPos.y, 3);
+		if(~~this.camera.x === ~~this.startPos.x) {
+			this.starting = !this.starting;
+		} else {
+			this.camera.x += vel.x;
+			this.camera.y += vel.y;
+		}
+		
+	}
+
+	for(var i = 0; i < this.entities.length; i++) {
+		this.entities[i].update(dt);
+	}
 };
 
 
 var aa = 1;
-Game.render = function(dt) {
-  	
-  	tiles = this.tiles;
+Game.render = function(dt) { 
   	var context = this.context;
-  	
-  	context.fillStyle = "black";
   	context.clearRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
-  	var count  = 0;
-	for(var y = 0; y < tiles.length; y++) {
-		for(var x = 0; x < tiles[y].length; x++) {
+
+	for(var y = 0; y < this.tiles.length; y++) {
+		for(var x = 0; x < this.tiles[y].length; x++) {
+			
 			var pos = util.isometricTransform(x, y, this.TILE_WIDTH, this.TILE_HEIGHT, this.camera.x, this.camera.y);
+			
 			if(pos.x > this.canvas.width + 128 || pos.x < -128 || pos.y > this.canvas.height + 128 || pos.y < -128) continue;
-			if(tiles[x][y] == 0) {
+			
+			try {
+			var tile = this.tiles[x][y];
+			} catch(e) {
+
+			}			
+			/*	Key: Grass 0	Water 1 	Tree 2 	  Stone 3 	  Wood 4 	War 5	*/
+			if(tile == 0) {
 				context.drawImage(this.images.grass.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
-				//context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
-			} else if(tiles[x][y] == 1){
+			} else if(tile == 1) {
+				context.drawImage(this.images.water.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+			} else if(tile == 2) {
 				context.drawImage(this.images.tree.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
-				//context.strokeRect(pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);
+			} else if(tile == 3) {
+				context.drawImage(this.images.stone.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+			} else if(tile == 4) {
+				context.drawImage(this.images.wood.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+			} else if(tile == 5) {
+				context.drawImage(this.images.War.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
 			} else {
 
-			}
-			
-			
-			//var e = util.getTileCoords(p.x, p.y, 128, 64);
-			//tiles[e.x][e.y] = 1;
-				
+			}			
 		}
 	}
+
+	for(var i = 0; i < this.entities.length; i++) {
+		this.entities[i].render(this.context);
+	}
+
+	if(this.starting) {
+		context.font = "30pt black bold"
+		context.fillText("Start building... create settlements to build a bridge... Good luck", (this.canvas.width/2 - 300) + this.camera.x, 100 + this.camera.y/4);
+		context.font = "30pt black bold";
+		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
+	} else {
+		context.font = "30pt black bold";
+			context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
+		context.drawImage(this.images[this.selector.image].image, this.selectedTile.isoX, this.selectedTile.isoY, this.TILE_WIDTH, this.TILE_HEIGHT);
+	}
+	
 };
 
 
