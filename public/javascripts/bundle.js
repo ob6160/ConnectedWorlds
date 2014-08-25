@@ -340,18 +340,18 @@ Game.render = function(dt) {
 	}
 
 	if(this.starting) {
-		context.font = "30pt black bold"
+		context.font = "30pt Arial"
 		context.fillText("Start building... create settlements to build a bridge... Good luck", (this.canvas.width/2 - 300) + this.camera.x, 100 + this.camera.y/4);
-		context.font = "30pt black bold";
+		context.font = "30pt Arial";
 		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
 		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.fillText("Bridge: " + this.level.bridgePro.toFixed(2), Math.abs(this.startPos.x - 350) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 	} else {
-		context.font = "30pt black bold";
+		context.font = "30pt Arial";
 		context.fillText("Level 1", Math.abs(this.startPos.x - 700) + this.camera.x, Math.abs(this.startPos.y - 80) + this.camera.y);
 
-		context.font = "30pt black bold";
+		context.font = "30pt Arial";
 		context.fillText("Wood: " + this.level.wood, Math.abs(this.startPos.x - 750) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.fillText("Stone: " + this.level.stone, Math.abs(this.startPos.x - 550) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
 		context.fillText("Bridge: " + this.level.bridgePro.toFixed(2), Math.abs(this.startPos.x - 350) + this.camera.x, Math.abs(this.startPos.y - 20) + this.camera.y);
