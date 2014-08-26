@@ -480,7 +480,7 @@ Game.render = function(dt) {
 	if(this.starting) {
 		context.font = "900 30px Arial"
 		
-		context.fillText("Your aim is to reach the star... use WSAD to look around to find it!", (this.canvas.width/2 - 300) + this.camera.x, 50 + this.camera.y/4);
+		context.fillText("Your aim is to reach the PORTALS... use WSAD to look around to find it!", (this.canvas.width/2 - 300) + this.camera.x, 50 + this.camera.y/4);
 		context.fillText("Start building... mine wood and stone then place builders to begin building a bridge", (this.canvas.width/2 - 300) + this.camera.x, 125 + this.camera.y/4);
 		context.fillText("After you build the first you will need to build a second to reach your goal.", (this.canvas.width/2 - 300) + this.camera.x, 200 + this.camera.y/4);
 		
