@@ -24,11 +24,11 @@ Building.prototype.spawnPeople = function() {
 	}
 
 	if(this.type == "stone") {
-		this.caption += "5 Stone per visit";
+		///this.caption += "5 Stone per visit";
 	} else if(this.type == "wood") {
-		this.caption += "5 Wood per visit";
+		///this.caption += "5 Wood per visit";
 	} else if(this.type == "build") {
-		this.caption += "20 Wood 20 Stone per Build Action";
+		///this.caption += "20 Wood 20 Stone per Build Action";
 	}
 }
 
@@ -176,7 +176,7 @@ Game.getBuildValue = function(type) {
 
 Game.buildBridge = function() {
 	//Every villager increases by 5%
-	this.level.bridgePro += 0.2;
+	this.level.bridgePro += 0.5;
 
 }
 
