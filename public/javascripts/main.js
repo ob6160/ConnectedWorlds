@@ -88,7 +88,7 @@ Game.getBuildValue = function(type) {
 
 Game.buildBridge = function() {
 	//Every villager increases by 5%
-	this.level.bridgePro += 0.2;
+	this.level.bridgePro += 0.5;
 
 }
 
