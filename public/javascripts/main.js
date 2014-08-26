@@ -39,11 +39,15 @@ window.Game = {
     selector: { image: "stone" },
     starting: true,
     startPos: {x: -402, y: -475},
-    keyLocs: { bridge1: {x: 960, y: 832}, bridge1End: {x: 576, y: 1088}, wood1: {x: 1216, y: 704}, bridge2: { x: -576, y: 1408 }, bridgeCurrent: {x: 0, y: 0}, bridgeCurrentEnd: {x: 0, y: 0}, endGame: {x: -1280, y: 1760}, wood2: {x: 384, y: 1248} },
+    keyLocs: { bridge1: {x: 960, y: 832}, bridge1End: {x: 576, y: 1088}, wood1: {x: 1216, y: 704}, bridge2: { x: -576, y: 1408 }, bridgeCurrent: {x: 0, y: 0}, bridgeCurrentEnd: {x: 0, y: 0}, endGame: {x: -1280, y: 1760}, wood2: {x: 384, y: 1248}, mine1: {x: 896,y: 672}, mine2: {x: 64, y: 1280} },
     entities: [],
-    bridge: {l1: 6, l2: 7, l3: 0},
-    level: {level: "l1", wood: 100, stone: 100, aWood: 300, aStone: 300, bridgePro: 0, level1: false, level2: false},
+    amount: {stone: 0, wood: 0},
+    bridge: {l1: 5, l2: 7, l3: 0},
+    level: {level: "l1", wood: 10, stone: 10, aWood: 300, aStone: 300, bridgePro: 0, level1: false, level2: false},
     buildingValues: {wood: { wood: -5, stone: 0 }, stone: {stone: -5, wood: 0}, build: {wood:-5, stone: 0}, war: {wood: -5, stone: -5}},
+    gameTime: 0,//HOW LONG DID IT TAKE!?!??!?!?! %FUCKING YEARS
+    finalCutScene: false,
+    startTime: 0,
 };
 
 Game.getResources = function() {
@@ -66,12 +70,16 @@ Game.changeResources = function(res) {
 	return true;
 }
 
-Game.placeBuilding = function(x, y, type) {
+Game.placeBuilding = function(x, y, tX, tY, type) {
 	var newBuilding = new building(x, y, type);
 	newBuilding.spawnPeople();
 	var resNeeded = this.getBuildValue(type);
 	this.changeResources(resNeeded);
-	this.entities.push(newBuilding);
+
+
+			this.entities.push(newBuilding);
+
+
 }
 
 Game.getBuildValue = function(type) {
@@ -137,6 +145,8 @@ Game.renderBridge = function(ctx) {
 }
 
 Game.init = function() {
+	var d = new Date();
+	this.startTime = d.getTime();
 	this.canvas.width = this.CANVAS_WIDTH;
 	this.canvas.height = this.CANVAS_HEIGHT;
 	/* Init Listeners */
@@ -155,7 +165,19 @@ Game.init = function() {
 	}.bind(this));
 	this.canvas.addEventListener('click', function(e) {
 		if(util.canAffordObject(this.selector.type)) {
-			this.placeBuilding(this.selectedTile.ipx , this.selectedTile.ipy, this.selector.type);	
+			var x = this.selectedTile.x;
+			var y = this.selectedTile.y;
+			var tile = this.tiles[~~x][~~y];
+			if(tile == -2 || tile  == 2 || tile == undefined) {
+			
+			} else {
+
+				this.placeBuilding(this.selectedTile.ipx, this.selectedTile.ipy, this.selectedTile.x, this.selectedTile.y, this.selector.type);
+				this.amount[this.selector.type]++;
+			}
+
+			//this.placeBuilding(this.selectedTile.ipx, this.selectedTile.ipy, this.selectedTile.x, this.selectedTile.y, this.selector.type);
+			//this.amount[this.selector.type]++;
 		}
 		
 	}.bind(this));
@@ -197,7 +219,7 @@ Game.init = function() {
 	this.timeCanvas.height = this.canvas.height;
 	this.timeCanvas.fillRect()*/
 
-	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null}, villager: { url:"./images/villager.png",image:null}, bridge: { url:"./images/bridge.png",image:null} };
+	this.images = { tree: {url: "./images/tree.png", image: null}, grass: { url:"./images/grass1.png", image:null}, water: { url:"./images/water.png",image:null}, stone: { url:"./images/stonemason.png",image:null}, wood: { url:"./images/woodchopper.png",image:null}, build: { url:"./images/builder.png",image:null}, war: { url:"./images/garrison.png",image:null}, villager: { url:"./images/villager.png",image:null}, bridge: { url:"./images/bridge.png",image:null}, mine: { url:"./images/mine.png",image:null}, portal: { url:"./images/portal.png",image:null} };
 	for(var i in this.images) {
 		var newImage = new Image();
 		this.images[i].image = newImage;
@@ -226,21 +248,23 @@ Game.tick = function() {
 }
 
 Game.update = function(dt, keys) {
+
 	var dX, dY, nX = this.player.x, nY = this.player.y;
 	dX = this.player.speed * dt;
 	dY = this.player.speed * dt;
 
 	
 	if(this.starting) {
-		var vel = util.moveTo(this.camera.x, this.camera.y, this.startPos.x, this.startPos.y, 3);
-		if(~~this.camera.x === ~~this.startPos.x) {
-			this.starting = !this.starting;
+			var vel = util.moveTo(this.camera.x, this.camera.y, this.startPos.x, this.startPos.y, 12);
+			if(~~this.camera.x === ~~this.startPos.x) {
+				this.starting = !this.starting;
+			} else {
+				this.camera.x += vel.x;
+				this.camera.y += vel.y;
+			}
+
 		} else {
-			this.camera.x += vel.x;
-			this.camera.y += vel.y;
-		}
-		} else {
-			if (keys[87]) {
+		if (keys[87]) {
 			this.camera.y += dY/4; 
 		} else if(keys[83]) {
 			 this.camera.y -= dY/4;
@@ -252,13 +276,65 @@ Game.update = function(dt, keys) {
 		}
 	}
 
-
+	if(this.finalCutScene) {
+		this.goodGame("");
+	}
 
 	for(var i = 0; i < this.entities.length; i++) {
 		this.entities[i].update(dt);
 	}
+
+	if(this.level.stone == 0 && this.amount.stone === 0) {
+		this.endGame("You ran out of stone.. oh no :-(");
+	} else if(this.level.wood == 0 && this.amount.wood === 0) {
+		this.endGame("You ran out of wood.. oh no :-(");
+	}
+
+	if(this.level.wood < 0) {
+		this.level.wood = 0;
+	} else if(this.level.stone < 0) {
+		this.level.stone = 0;
+	}
+
 };
 
+
+Game.endGame = function(why) {
+	this.running = true;
+	this.context.fillStyle = "black";
+	this.context.fillRect(0,0,this.canvas.width, this.canvas.height);
+	
+	this.context.fillStyle = "rgba(255,255,255,0.5)";
+	util.roundRect(this.context, 10, 10, 500, 400, 2, true, true);
+
+	this.context.fillStyle = "white";
+	this.context.font="20px Calibri";
+	this.context.fillText("Sadly you failed." + why, 10, 100);
+	this.context.fillText( "To try again please refresh the page", 10, 200);
+
+}
+
+
+Game.goodGame = function(why) {
+	this.running = true;
+	this.context.fillStyle = "black";
+	this.context.fillRect(0,0,this.canvas.width, this.canvas.height);
+	
+	this.context.fillStyle = "rgba(255,255,255,0.5)";
+	util.roundRect(this.context, 10, 10, 1000, 400, 2, true, true);
+
+	this.context.fillStyle = "white";
+	this.context.font="20px Calibri";
+	this.context.fillText("Well Done! You built the two bridges required to reach the portals of mystery!." + why, 10, 100);
+	
+	var d = new Date();
+	var t = d.getTime();
+	var diff = t - this.startTime;
+	var diffS = diff/60;
+	this.context.fillText( "You took a total time of: " + diffS + " Seconds", 10, 200);
+
+
+}
 
 var aa = 1;
 Game.render = function(dt) { 
@@ -267,7 +343,7 @@ Game.render = function(dt) {
   	context.fillStyle = "rgba(0, 148, 255, 0.5)";
   	context.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
 	
-	this.renderBridge(context);
+	
 
 	for(var y = 0; y < this.tiles.length; y++) {
 		for(var x = 0; x < this.tiles[y].length	; x++) {
@@ -277,7 +353,7 @@ Game.render = function(dt) {
 			if(pos.x > this.canvas.width + 128 || pos.x < -128 || pos.y > this.canvas.height + 128 || pos.y < -128) continue;
 			
 			try {
-			var tile = this.tiles[x][y];
+				var tile = this.tiles[x][y];
 			} catch(e) {
 
 			}			
@@ -294,11 +370,15 @@ Game.render = function(dt) {
 				context.drawImage(this.images.wood.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
 			} else if(tile == 5) {
 				context.drawImage(this.images.War.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
-			} else {
-
-			}			
+			} else if(tile == 6) {
+				context.drawImage(this.images.mine.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+			} else if(tile == 7) {
+				context.drawImage(this.images.portal.image, pos.x, pos.y, this.TILE_WIDTH, this.TILE_HEIGHT);	
+			}
 		}
 	}
+
+	this.renderBridge(context);
 
 	context.fillStyle = "rgba(255,255,255,0.5)";
 	util.roundRect(this.context, 10, 10, 500, 100, 2, true, true);

@@ -13,15 +13,16 @@ function Person(x, y, type) {
 	this.atHome = true;
 	this.atBridge = false;
 	this.atTree = false;
+	this.atMine = false;
 	this.bridgeEnd = false;
 	this.bridgeEnd1 = false;
 	this.building = {x: x, y: y};
-
+	this.caption = this.type;
 	this.speed = util.randRange(10,16);
 
 
-	this.posTime = 0;
-	this.timeLimit = util.randRange(2000, 6000);
+	this.posTime = 10000;
+	this.timeLimit = util.randRange(2000, 5000);
 
 }
 
@@ -29,17 +30,10 @@ Person.prototype.init = function() {
 	
 }
 
-Person.prototype.getPath = function(tarLoc) {
-	if(!tarLoc) return false;
-	this.easystar.findPath(~~this.x/128, ~~this.y/64, dstarLoc.x, tarLoc.y,function(path){
-		this.path = path;
-		return path;
-	}.bind(this));
-	this.easystar.calculate();
-
-}
 
 Person.prototype.moveTo = function(tX, tY, callback) {
+	this.vX += 64;
+	this.vY += 32;
 	var pos = util.moveTo(this.x, this.y, tX, tY, this.speed);
 
 	this.vX = pos.x;
@@ -57,7 +51,7 @@ Person.prototype.doAction = function() {
 	this.posTime++;
 	var res = Game.getResources();
 	if(this.type == "build") {
-		if(res.stone > 5 && res.wood > 5) {
+		if(res.stone >= 0 && res.wood >= 0) {
 			if(this.atHome && !this.atBridge) {
 				if(this.posTime > this.timeLimit) {
 					
@@ -75,7 +69,7 @@ Person.prototype.doAction = function() {
 									this.atHome = !this.atHome;
 									console.log("STOP");
 									if(res.stone > 1 && res.wood > 1) {
-										Game.changeResources({stone: -10, wood: -10});
+										Game.changeResources({stone: -20, wood: -20});
 									} else {
 
 									}
@@ -92,7 +86,8 @@ Person.prototype.doAction = function() {
 
 						if(this.bridgeEnd1) {
 							this.moveTo(Game.keyLocs.endGame.x + 128, Game.keyLocs.endGame.y + 64, function() {
-								console.log("END GAME");
+								this.font = "100px Arial"
+								this.caption = "YAY THE PORTAL HAS BEEN FOUND";
 							}.bind(this));
 						}
 
@@ -104,7 +99,7 @@ Person.prototype.doAction = function() {
 							console.log("STOP")
 							this.posTime = 0;
 							if(res.stone > 1 && res.wood > 1) {
-								Game.changeResources({stone: -10, wood: -10});
+								Game.changeResources({stone: -20, wood: -20});
 							} else {
 
 							}
@@ -144,7 +139,7 @@ Person.prototype.doAction = function() {
 				if(this.atHome && !this.atTree) {
 					if(this.posTime > this.timeLimit) {
 						
-						if(this.building.y < Game.keyLocs.bridge1.y) { //SHITTY NUMBER 1 SPPOT
+						if(this.building.y < Game.keyLocs.bridge1.y + 128) { //SHITTY NUMBER 1 SPPOT
 							this.moveTo((Game.keyLocs.wood1.x) + Math.random()*64, (Game.keyLocs.wood1.y) + Math.random()*32, function() {
 								//Finished moving
 								this.atTree = !this.atTree;
@@ -163,7 +158,7 @@ Person.prototype.doAction = function() {
 						}
 							
 						} else {
-							
+
 						}
 					} else if(!this.atHome && this.atTree) {
 						if(this.posTime > this.timeLimit) {
@@ -171,7 +166,47 @@ Person.prototype.doAction = function() {
 								//Finished moving
 								this.atTree = !this.atTree;
 								this.atHome = !this.atHome;
-								Game.changeResources({stone: 0, wood: 10});
+								Game.changeResources({stone: 0, wood: 5});
+								console.log("STOP");
+								this.posTime = 0;
+							}.bind(this));
+						} else {
+
+						}
+		}
+	} else if(this.type == "stone") {
+
+				if(this.atHome && !this.atMine) {
+					if(this.posTime > this.timeLimit) {
+						
+						if(this.building.y < Game.keyLocs.bridge1.y + 128) { //SHITTY NUMBER 1 SPPOT
+							this.moveTo((Game.keyLocs.mine1.x) + Math.random()*64, (Game.keyLocs.mine1.y) + Math.random()*32, function() {
+								//Finished moving
+								this.atMine = !this.atMine;
+								this.atHome = !this.atHome;
+								console.log("STOP")
+								this.posTime = 0;
+							}.bind(this));
+						} else { //CRAPPY NUMBER 2 SPOT
+							this.moveTo((Game.keyLocs.mine2.x) + Math.random()*64, (Game.keyLocs.mine2.y) + Math.random()*32, function() {
+								//Finished moving
+								this.atMine = !this.atMine;
+								this.atHome = !this.atHome;
+								console.log("STOP")
+								this.posTime = 0;
+							}.bind(this));
+						}
+							
+						} else {
+							
+						}
+					} else if(!this.atHome && this.atMine) {
+						if(this.posTime > this.timeLimit) {
+							this.moveTo(this.building.x, this.building.y, function() {
+								//Finished moving
+								this.atMine = !this.atMine;
+								this.atHome = !this.atHome;
+								Game.changeResources({stone: 5, wood: 0});
 								console.log("STOP");
 								this.posTime = 0;
 							}.bind(this));
@@ -196,7 +231,8 @@ Person.prototype.update = function(dt) {
 }
 
 Person.prototype.render = function(ctx) {
-	
+	ctx.font = "10px Arial";
+	ctx.fillText(this.caption, this.x + Game.camera.x - 10, this.y + Game.camera.y);
 	ctx.drawImage(Game.images.villager.image, this.x + Game.camera.x, this.y + Game.camera.y, 10, 20);
 
 	
