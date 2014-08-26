@@ -23,11 +23,11 @@ Building.prototype.spawnPeople = function() {
 	}
 
 	if(this.type == "stone") {
-		this.caption += "5 Stone per visit";
+		///this.caption += "5 Stone per visit";
 	} else if(this.type == "wood") {
-		this.caption += "5 Wood per visit";
+		///this.caption += "5 Wood per visit";
 	} else if(this.type == "build") {
-		this.caption += "20 Wood 20 Stone per Build Action";
+		///this.caption += "20 Wood 20 Stone per Build Action";
 	}
 }
 
